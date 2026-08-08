@@ -1,0 +1,11 @@
+---
+description: Git commit message rules for this course repo
+alwaysApply: true
+---
+
+# Git commits
+
+- Follow the commit message convention in `README.md` (`Type: Summary`).
+- Never add a `Co-authored-by:` trailer (including `Co-authored-by: Cursor <cursoragent@cursor.com>`).
+- Do not append any AI/tool attribution lines to commit messages.
+- Keep messages as the user-approved text only.
