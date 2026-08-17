@@ -34,3 +34,5 @@ pnpm-debug.log*
 
 # Coverage / test
 coverage/
+
+topics/section_21/project-management-demo/
