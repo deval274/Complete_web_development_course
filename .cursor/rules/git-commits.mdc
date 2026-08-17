@@ -11,13 +11,23 @@ alwaysApply: true
 - Do not append any AI/tool attribution lines to commit messages.
 - Keep messages as the user-approved text only.
 
+## Timestamps (required)
+
+GitHub shows **author date**, not committer date, and not push time. The user wants that stamp to be the real `git commit` time.
+
+- New commits: do not set `GIT_AUTHOR_DATE`. Let Git use now for both author and committer.
+- Never `export GIT_AUTHOR_DATE`, `GIT_AUTHOR_NAME`, `GIT_AUTHOR_EMAIL`, or `GIT_COMMITTER_DATE` in a persistent shell. If `commit-tree` needs them, pass them as a **one-shot prefix on that command only**.
+- After any rewrite, run `unset GIT_AUTHOR_DATE GIT_AUTHOR_NAME GIT_AUTHOR_EMAIL GIT_COMMITTER_DATE`.
+- When stripping a trailer from a commit just created, copy that commit's existing dates only if they are current. If author date is stale, set author date to the committer date (the real commit time).
+- `git push` does not record a time on the commit. Do not try to set dates to push time.
+
 ## After every commit (required)
 
 Cursor may inject `Co-authored-by: Cursor <cursoragent@cursor.com>` even when the agent did not write it.
 
 1. Run `git log -1 --format=full` immediately after commit or amend.
 2. If any `Co-authored-by:` (or other AI/tool trailer) is present, rewrite the HEAD message to the approved text only, then verify again.
-3. Prefer `git commit --amend` when the amend rules allow it. If amend re-injects the trailer, recreate HEAD with the same tree via `git commit-tree` and `git reset --soft` (unpushed commits only).
+3. Prefer `git commit --amend` when the amend rules allow it. If amend re-injects the trailer, recreate HEAD with the same tree via `git commit-tree` and `git reset --soft` (unpushed commits only). Pass author env as a one-shot prefix; never `export` it.
 4. Do not finish the turn until `git log -1 --format=%B` has no `Co-authored-by:` line.
 
 ## Before every push (required)
