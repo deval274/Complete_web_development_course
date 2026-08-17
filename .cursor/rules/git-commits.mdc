@@ -6,6 +6,7 @@ alwaysApply: true
 # Git commits and pushes
 
 - Follow the commit message convention in `README.md` (`Type: Summary`).
+- For work under `projects/`, use `Project(<folder-name>): Summary.` The folder name is the directory under `projects/` (e.g. `Project(project-management): Add prettier to the codebase.`). Do not use `Project: Summary` without the folder name, and do not use a second colon.
 - Never add a `Co-authored-by:` trailer (including `Co-authored-by: Cursor <cursoragent@cursor.com>`).
 - Do not append any AI/tool attribution lines to commit messages.
 - Keep messages as the user-approved text only.
