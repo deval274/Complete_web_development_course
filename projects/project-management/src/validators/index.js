@@ -4,13 +4,13 @@ const userRegisterValidator = () => {
   return [
     body("email")
       .trim()
-      .isEmpty()
+      .notEmpty()
       .withMessage("Email is required")
       .isEmail()
       .withMessage("Invalid email address"),
     body("username")
       .trim()
-      .isEmpty()
+      .notEmpty()
       .withMessage("Username is required")
       .isLowercase()
       .withMessage("Username must be in lowercase")
@@ -18,24 +18,30 @@ const userRegisterValidator = () => {
       .withMessage("Username must be at least 3 characters long"),
     body("password")
       .trim()
-      .isEmpty()
+      .notEmpty()
       .withMessage("Password is required")
       .isLength({ min: 8 })
-      .withMessage("Password must be at least 8 characters long")
-      .matches(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
-      )
-      .withMessage(
-        "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character",
-      ),
+      .withMessage("Password must be at least 8 characters long"),
     body("fullName")
       .optional()
       .trim()
-      .isEmpty()
+      .notEmpty()
       .withMessage("Full name is required")
       .isLength({ min: 3 })
       .withMessage("Full name must be at least 3 characters long"),
   ];
 };
 
-export { userRegisterValidator };
+const userLoginValidator = () => {
+  return [
+    body("email").optional().isEmail().withMessage("Email is invalid"),
+    body("username")
+      .optional()
+      .trim()
+      .notEmpty()
+      .withMessage("Username is required"),
+    body("password").notEmpty().withMessage("password is required"),
+  ];
+};
+
+export { userRegisterValidator, userLoginValidator };
