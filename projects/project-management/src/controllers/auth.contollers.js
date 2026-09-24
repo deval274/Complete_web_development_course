@@ -2,7 +2,7 @@ import { ApiResponse } from "../utils/api.response.js";
 import { ApiError } from "../utils/api-error.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { User } from "../models/user.models.js";
-import { sendEmail } from "../utils/mail.js";
+import { emailVerificationMailgenContent, sendEmail } from "../utils/mail.js";
 
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
@@ -22,7 +22,7 @@ const generateAccessAndRefreshTokens = async (userId) => {
 };
 
 const registerUser = asyncHandler(async (req, res) => {
-  const { email, username, password, role } = req.body;
+  const { email, username, password, fullName, role } = req.body;
   const existedUser = await User.findOne({
     $or: [{ username }, { email }],
   });
@@ -33,12 +33,13 @@ const registerUser = asyncHandler(async (req, res) => {
   const user = await User.create({
     email,
     username,
+    fullName,
     password,
     isEmailVerified: false,
   });
 
   const { unHashedToken, hashedToken, tokenExpiry } =
-    await generateTemporaryToken();
+    user.generateTemporaryToken();
 
   user.emailVerificationToken = hashedToken;
   user.emailVerificationTokenExpiry = tokenExpiry;
@@ -46,7 +47,7 @@ const registerUser = asyncHandler(async (req, res) => {
   await user.save({ validateBeforeSave: false });
 
   await sendEmail({
-    email: user.email,
+    email: user?.email,
     subject: "Email Verification",
     mailgenContent: emailVerificationMailgenContent(
       user.username,
