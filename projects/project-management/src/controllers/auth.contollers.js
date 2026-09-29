@@ -1,8 +1,13 @@
+import crypto from "crypto";
 import { ApiResponse } from "../utils/api.response.js";
 import { ApiError } from "../utils/api-error.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { User } from "../models/user.models.js";
-import { emailVerificationMailgenContent, sendEmail } from "../utils/mail.js";
+import {
+  emailVerificationMailgenContent,
+  forgotPasswordMailgenContent,
+  sendEmail,
+} from "../utils/mail.js";
 import jwt from "jsonwebtoken";
 
 const generateAccessAndRefreshTokens = async (userId) => {
@@ -52,7 +57,7 @@ const registerUser = asyncHandler(async (req, res) => {
     subject: "Email Verification",
     mailgenContent: emailVerificationMailgenContent(
       user.username,
-      `${req.protocol}://${req.get("host")}/api/v1/users/verify-email/${unHashedToken}`,
+      `${req.protocol}://${req.get("host")}/api/v1/auth/verify-email/${unHashedToken}`,
     ),
   });
 
@@ -195,53 +200,41 @@ const verifyEmail = asyncHandler(async (req, res) => {
   );
 });
 
-const resendEmailVerificatioToken = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
-  if (!email) {
-    throw new ApiError(400, "Email is required");
-  }
-
-  const user = await User.findOne({
-    email,
-  });
+const resendEmailVerification = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user?._id);
 
   if (!user) {
-    throw new ApiError(404, "user is not exist");
+    throw new ApiError(404, "User does not exist");
   }
-
   if (user.isEmailVerified) {
     throw new ApiError(409, "Email is already verified");
   }
 
-  const isPasswordValid = await user.isPasswordCorrect(password);
+  const { unHashedToken, hashedToken, tokenExpiry } =
+    user.generateTemporaryToken();
 
-  if (!isPasswordValid) {
-    throw new ApiError(400, "Password is invalid");
-  }
-
-  const { unHashedToken, hasedToken, tokenExpiry } =
-    user.generateTemporaryToken;
-
-  user.emailVerificationToken = hasedToken;
+  user.emailVerificationToken = hashedToken;
   user.emailVerificationTokenExpiry = tokenExpiry;
-  user.save({ validateBeforeSave: false });
+
+  await user.save({ validateBeforeSave: false });
 
   await sendEmail({
     email: user?.email,
-    subject: "Resend email verification",
+    subject: "Please verify your email",
     mailgenContent: emailVerificationMailgenContent(
-      user?.username,
-      `${req.protocol}://${req.get(host)}/api/V1/users/verify-email/${unHashedToken}`,
+      user.username,
+      `${req.protocol}://${req.get("host")}/api/v1/auth/verify-email/${unHashedToken}`,
     ),
   });
 
   return res
     .status(200)
-    .json(new ApiResponse(201, "Resend email verification token"));
+    .json(new ApiResponse(200, {}, "Mail has been sent to your email ID"));
 });
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
-  const incomingRefreshToken = req.cookie.refreshToken || req.body.refreshToken;
+  const incomingRefreshToken =
+    req.cookies?.refreshToken || req.body?.refreshToken;
   if (!incomingRefreshToken) {
     throw new ApiError(404, "Unauthorizes access");
   }
@@ -269,7 +262,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       await generateAccessAndRefreshTokens(user._id);
 
     user.refreshToken = newRefreshToken;
-    user.save();
+    user.save({ validateBeforeSave: false });
 
     return res
       .status(200)
@@ -293,17 +286,17 @@ const forgotPasswordRequest = asyncHandler(async (req, res) => {
   if (!user) {
     throw new ApiError(404, "User not found");
   }
-  const { unHashedToken, hasedToken, tokenExpiry } =
-    user.generateTemporaryToken;
+  const { unHashedToken, hashedToken, tokenExpiry } =
+    user.generateTemporaryToken();
 
-  user.forgotPasswordToken = hasedToken;
+  user.forgotPasswordToken = hashedToken;
   user.forgotPasswordTokenExpiry = tokenExpiry;
   user.save({ validateBeforeSave: false });
 
   await sendEmail({
     email: user?.email,
     subject: "Forgot password verification",
-    mailgenContent: forgotPasswordRequest(
+    mailgenContent: forgotPasswordMailgenContent(
       user?.username,
       `${process.env.FORGOT_PASSWORD_REDIRECT_URL}/${unHashedToken}`,
     ),
@@ -370,7 +363,7 @@ export {
   logoutUser,
   getCurrentUser,
   verifyEmail,
-  resendEmailVerificatioToken,
+  resendEmailVerification,
   refreshAccessToken,
   forgotPasswordRequest,
   resetForgotPassword,
